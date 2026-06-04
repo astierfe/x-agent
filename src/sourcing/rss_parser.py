@@ -12,6 +12,7 @@ Target Python: 3.11+
 from __future__ import annotations
 
 import logging
+import socket
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -131,7 +132,12 @@ def parse_feed(feed_name: str, feed_url: str, timeout: int = 30) -> FeedResult:
     result = FeedResult(feed_name=feed_name, feed_url=feed_url)
 
     try:
-        parsed = feedparser.parse(feed_url, agent="x-agent/0.1", timeout=timeout)
+        default_timeout = socket.getdefaulttimeout()
+        try:
+            socket.setdefaulttimeout(timeout)
+            parsed = feedparser.parse(feed_url, agent="x-agent/0.1")
+        finally:
+            socket.setdefaulttimeout(default_timeout)
     except URLError as exc:
         msg = f"Network error fetching '{feed_name}': {exc}"
         logger.error(msg)
