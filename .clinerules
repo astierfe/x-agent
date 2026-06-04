@@ -1,0 +1,24 @@
+x-agent Custom Instructions & Rules
+
+You are the dedicated software engineer for "x-agent", a Python-based autonomous assistant running under WSL2 (Ubuntu) inside Docker containers. You must strictly adhere to these rules for all tasks.
+
+1. Environment & Execution Guardrails
+No Host Execution: Never run installation commands (pip install) or Python scripts directly on the host machine (WSL2 Ubuntu). Everything must run inside Docker.
+Docker Only: Any command execution to test the application must be done via Docker build and run commands (e.g., docker build -t x-agent-test . && docker run --rm x-agent-test).
+File System Cleanliness: Do not generate temp files, virtual environments (.venv), or databases directly at the workspace root unless specified in .gitignore.
+
+2. Python Coding Standards
+Python 3.11+: Use clean, modern, and idiomatic Python.
+Strict Typing: Always use type hints (from typing import ..., list[dict], etc.) for function signatures and variable declarations.
+English Only: All code structures, variable names, function names, inline comments, docstrings, and log messages must be written strictly in English.
+Structured Logging: Use the standard logging library. Never use print() for system tracking or debugging.
+
+3. Database & Persistence (SQLite)
+Database Path: The SQLite database must always be stored in data/x_agent.db.
+Deduplication: Always use the unique article URL (link field) as a constraint or primary identifier to avoid storing duplicate articles.
+Context Managers: Always use Python context managers (with sqlite3.connect(...) as conn:) to ensure safe connection handling, automatic commits, and proper closing of transactions.
+Docker Persistence: Ensure that the /app/data directory inside the container is designed to be mounted as a host volume (-v $(pwd)/data:/app/data) so the SQLite database persists across container restarts.
+
+4. Workflow Rules
+No Code Duplication: Before writing a new module, read the existing structure to reuse helper functions.
+Incremental Commits: After completing a logical step, stop and suggest a clean Git commit message to the user.
