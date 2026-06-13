@@ -1,1 +1,2 @@
 feedparser>=6.0.10
+streamlit>=1.28.0

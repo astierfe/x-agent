@@ -33,7 +33,7 @@ _OPENROUTER_URL: str = "https://openrouter.ai/api/v1/chat/completions"
 MODEL_MAP: dict[str, str] = {
     "sandbox": "google/gemma-4-31b-it:free",  # $0 cost — safe for testing
     "production": "deepseek/deepseek-chat",
-    "social": "xai/grok-2",
+    "social": "x-ai/grok-4.20",
 }
 
 # Retry / backoff defaults

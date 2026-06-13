@@ -129,11 +129,38 @@ ORDER BY d.created_at DESC;
 # ---------------------------------------------------------------------------
 
 
-def _get_connection() -> sqlite3.Connection:
+def _get_connection(*, read_only: bool = False) -> sqlite3.Connection:
     """Return a new SQLite connection to the x_agent database.
 
-    Ensures the parent directory exists before connecting.
+    When *read_only* is ``True`` the database is opened in read-only mode
+    using URI syntax (``file:…?mode=ro``).  This is safe for Docker
+    ``:ro`` volume mounts because it avoids WAL and skips any attempt to
+    create ``-wal`` / ``-shm`` sidecar files.
+
+    Parameters
+    ----------
+    read_only:
+        If ``True``, open the database file in read-only mode and disable
+        journaling for this connection.  Defaults to ``False``.
+
+    Returns
+    -------
+    sqlite3.Connection
+        A new connection with ``row_factory = sqlite3.Row``.
     """
+    if read_only:
+        # URI-based read-only mode — safe for Docker :ro mounts.
+        # ``immutable=1`` tells SQLite the database file will never
+        # change, so it won't even attempt to look at ``-wal`` / ``-shm``
+        # sidecar files.  This avoids ``SQLITE_READONLY`` errors when
+        # the volume is mounted ``:ro``.
+        abs_path = _DB_PATH.resolve().as_posix()
+        uri = f"file:///{abs_path}?mode=ro&immutable=1"
+        conn = sqlite3.connect(uri, uri=True)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    # Read-write path (unchanged behaviour).
     _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(_DB_PATH))
     conn.row_factory = sqlite3.Row
@@ -340,6 +367,8 @@ def save_draft(
 
 def get_pending_drafts(
     limit: int | None = None,
+    *,
+    read_only: bool = False,
 ) -> list[dict[str, Any]]:
     """Retrieve all drafts joined with their parent articles (newest first).
 
@@ -347,6 +376,10 @@ def get_pending_drafts(
     ----------
     limit:
         Optional maximum number of rows to return.
+    read_only:
+        If ``True``, open the database in read-only mode.  Use this when
+        the database file is on a volume mounted ``:ro`` (e.g. the
+        Streamlit UI container).  Defaults to ``False``.
 
     Returns
     -------
@@ -363,7 +396,7 @@ def get_pending_drafts(
         query = _SELECT_PENDING_DRAFTS_SQL.rstrip(";") + " LIMIT ?;"
         params = (limit,)
 
-    with _get_connection() as conn:
+    with _get_connection(read_only=read_only) as conn:
         cursor = conn.execute(query, params)
         rows = cursor.fetchall()
 
