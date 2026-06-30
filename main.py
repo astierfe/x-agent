@@ -8,7 +8,9 @@ Target: Python 3.11+
 """
 
 import logging
+import os
 import sys
+from pathlib import Path
 from typing import Any
 
 from src.database.db_manager import (
@@ -20,6 +22,7 @@ from src.database.db_manager import (
 from src.intelligence.filter import check_relevance
 from src.intelligence.post_generator import generate_draft
 from src.sourcing.rss_parser import FeedEntry, parse_feeds
+from src.sourcing.tweetclaw_import import load_tweetclaw_export
 
 logging.basicConfig(
     level=logging.INFO,
@@ -129,8 +132,18 @@ def main() -> None:
     for result in outcome.results:
         all_entries.extend(result.entries)
 
+    tweetclaw_export = os.environ.get("TWEETCLAW_EXPORT_CSV")
+    if tweetclaw_export:
+        tweetclaw_entries = load_tweetclaw_export(Path(tweetclaw_export))
+        all_entries.extend(tweetclaw_entries)
+        logger.info(
+            "Loaded %d TweetClaw source item(s) from %s.",
+            len(tweetclaw_entries),
+            tweetclaw_export,
+        )
+
     logger.info(
-        "Fetched %d entries across %d feed(s) (%d failed).",
+        "Fetched %d RSS entries across %d feed(s) (%d failed).",
         outcome.total_entries,
         outcome.total_feeds_processed - outcome.total_feeds_failed,
         outcome.total_feeds_failed,
